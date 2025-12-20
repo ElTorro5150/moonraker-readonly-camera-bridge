@@ -1,1 +1,16 @@
-todo
+# Dummy Klipper config (camera-only host)
+
+[mcu]
+serial: /tmp/klipper_host_mcu
+
+[printer]
+kinematics: none
+max_velocity: 1
+max_accel: 1
+
+[pause_resume]
+
+[display_status]
+
+[virtual_sdcard]
+path: ~/printer_data/gcodes

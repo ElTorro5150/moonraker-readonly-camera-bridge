@@ -1,0 +1,21 @@
+server {
+    listen 7126;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:7125;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        # Websocket support
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Sandbox: block everything except GET/HEAD
+        limit_except GET {
+            deny all;
+        }
+    }
+}

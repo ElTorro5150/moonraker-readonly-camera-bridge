@@ -1,1 +1,19 @@
-todo
+# Systemd service: Klipper Linux Host MCU
+
+[Unit]
+Description=Klipper Linux Host MCU (klipper_mcu)
+Documentation=https://www.klipper3d.org/RPi_microcontroller.html
+Before=klipper.service
+ConditionFileIsExecutable=/usr/local/bin/klipper_mcu
+
+[Service]
+Type=simple
+User=prusa
+Group=prusa
+ExecStart=/usr/local/bin/klipper_mcu -r -I /tmp/klipper_host_mcu
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+

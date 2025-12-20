@@ -1,1 +1,25 @@
-todo
+# Moonraker Configuration File
+
+#[server]
+#host: 0.0.0.0
+#port: 7125
+# Make sure the klippy_uds_address is correct.  It is initialized
+# to the default address.
+#klippy_uds_address: /tmp/klippy_uds
+
+#[machine]
+#provider: systemd_dbus
+
+[server]
+host: 0.0.0.0
+port: 7125
+klippy_uds_address: /home/prusa/printer_data/comms/klippy.sock
+
+[authorization]
+trusted_clients:
+  127.0.0.1
+  192.168.86.0/24
+
+
+[machine]
+provider: systemd_dbus

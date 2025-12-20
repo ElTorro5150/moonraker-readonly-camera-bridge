@@ -1,1 +1,38 @@
-todo
+=== DATE ===
+Sat 20 Dec 14:40:33 CST 2025
+
+=== OS ===
+PRETTY_NAME="Raspbian GNU/Linux 13 (trixie)"
+NAME="Raspbian GNU/Linux"
+VERSION_ID="13"
+VERSION="13 (trixie)"
+VERSION_CODENAME=trixie
+DEBIAN_VERSION_FULL=13.1
+ID=raspbian
+ID_LIKE=debian
+HOME_URL="http://www.raspbian.org/"
+SUPPORT_URL="http://www.raspbian.org/RaspbianForums"
+BUG_REPORT_URL="http://www.raspbian.org/RaspbianBugs"
+
+=== KERNEL ===
+Linux PRUSA-XL-CAM 6.12.47+rpt-rpi-v7 #1 SMP Raspbian 1:6.12.47-1+rpt1 (2025-09-16) armv7l GNU/Linux
+
+=== SERVICES ENABLED ===
+enabled
+enabled
+enabled
+enabled
+enabled
+enabled
+
+=== PORTS LISTENING (8081/9000/7125/7126) ===
+LISTEN 0      1            0.0.0.0:9000      0.0.0.0:*    users:(("rpicam-vid",pid=23043,fd=17))
+LISTEN 0      511          0.0.0.0:7126      0.0.0.0:*                                          
+LISTEN 0      128          0.0.0.0:7125      0.0.0.0:*    users:(("python",pid=22158,fd=11))    
+LISTEN 0      5            0.0.0.0:8081      0.0.0.0:*    users:(("python3",pid=23044,fd=3))    
+
+=== NGINX VERSION ===
+nginx version: nginx/1.26.3
+
+=== MOONRAKER VERSION ===
+{"result":{"klippy_connected":true,"klippy_state":"ready","components":["secrets","template","klippy_connection","jsonrpc","internal_transport","application","websockets","database","dbus_manager","file_manager","authorization","klippy_apis","shell_command","machine","data_store","proc_stats","job_state","job_queue","history","http_client","announcements","webcam","extensions"],"failed_components":[],"registered_directories":["config","logs","gcodes","config_examples","docs"],"warnings":["file_manager: Klipper configuration file not located in 'config' folder.<br/><br/>Klipper Config Path: /ho

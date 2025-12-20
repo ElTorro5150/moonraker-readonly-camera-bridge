@@ -1,4 +1,3 @@
-prusa@PRUSA-XL-CAM:~ $ sudo cat /usr/local/bin/xl_cam_raw_mjpeg.sh
 #!/usr/bin/env bash
 exec rpicam-vid \
   -t 0 \

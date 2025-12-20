@@ -1,1 +1,15 @@
-todo
+#Systemd service file for klipper
+[Unit]
+Description=Starts klipper on startup
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+User=prusa
+RemainAfterExit=yes
+ExecStart=/home/prusa/klippy-env/bin/python /home/prusa/klipper/klippy/klippy.py /home/prusa/printer.cfg -l /tmp/klippy.log -a /home/prusa/printer_data/comms/klippy.sock
+Restart=always
+RestartSec=10

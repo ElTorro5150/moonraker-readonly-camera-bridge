@@ -1,1 +1,14 @@
-todo
+[Unit]
+Description=Prusa XL Camera HTTP MJPEG Server
+After=xl-cam-feed.service
+Requires=xl-cam-feed.service
+
+[Service]
+Type=simple
+User=prusa
+ExecStart=/usr/local/bin/mjpeg_http_server.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
