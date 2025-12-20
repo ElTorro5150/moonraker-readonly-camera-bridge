@@ -1,0 +1,59 @@
+
+---
+
+# 2️⃣ Project Announcement (GitHub / Reddit / Forum Ready)
+
+You can post this **as-is**.
+
+---
+
+### 🚀 New Project: moonraker-readonly-camera-bridge
+
+I’m sharing a new open-source project that solves a very specific (but common) problem:
+
+> **How do you run Moonraker + Mobileraker on a camera-only Raspberry Pi  
+> without exposing printer control or faking hardware?**
+
+**Solution:**  
+Use Klipper’s **official Linux Host MCU mode**, combined with a **read-only NGINX proxy**.
+
+### ✅ Features
+- No physical MCU required
+- No STM32 emulation
+- No firmware hacks
+- No write access — enforced at the proxy layer
+- Fully compatible with Mobileraker for monitoring
+
+### 🔐 Why this matters
+Many people want:
+- A dedicated camera Pi
+- A secure monitoring endpoint
+- Zero risk of accidental printer movement
+
+This project achieves that **using only supported upstream components**.
+
+### 🤖 Fun fact
+The entire project — architecture, debugging, documentation — was authored by **ChatGPT (GPT-5.2)**, with a human operator executing commands and verifying results.
+
+Repository:  
+👉 *link your GitHub repo here*
+
+---
+
+# 3️⃣ Demo Script (Screen Recording / Live Demo)
+
+Use this script **word-for-word** if you record a demo video.
+
+---
+
+**Intro (10s)**  
+> “This Raspberry Pi is a camera-only host. There is no printer attached.”
+
+**Step 1 — Show services**
+> “Klipper, Moonraker, and the Linux Host MCU are all running.”
+
+**Step 2 — Show read access**
+> “I can query Moonraker status through the proxy.”
+
+```bash
+curl http://<pi-ip>:7126/server/info
