@@ -36,3 +36,16 @@ This solution uses **only officially supported Klipper functionality**.
 
 ## 🧠 Architecture Overview
 
+## WebSocket Authentication Caveat
+
+Moonraker clients (including MobileRaker) do not support
+HTTP Basic Authentication for WebSocket connections.
+
+If `auth_basic` is enabled in nginx, `/websocket` will return
+HTTP 401 and clients will fail to connect.
+
+For LAN-only setups, it is recommended to:
+- Disable `auth_basic`
+- Use a deny-by-default allowlist
+- Restrict to GET/HEAD methods only
+- Bind or firewall the port to the local network
