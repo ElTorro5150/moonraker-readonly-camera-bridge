@@ -49,3 +49,8 @@ For LAN-only setups, it is recommended to:
 - Use a deny-by-default allowlist
 - Restrict to GET/HEAD methods only
 - Bind or firewall the port to the local network
+
+- ⚠️ Nginx loads *all* files in `sites-enabled/`.
+Do not leave backup files (e.g. `.bak`) in this directory,
+or you may end up with multiple active server blocks.
+
