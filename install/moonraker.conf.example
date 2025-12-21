@@ -1,1 +1,20 @@
-TODO
+# moonraker.conf.example (minimal example)
+# NOTE: You MUST adjust paths and any authorization/network settings for your environment.
+
+[server]
+# Bind only to loopback by default; nginx can proxy read-only access on another port.
+host: 127.0.0.1
+port: 7125
+
+[authorization]
+# Example: lock down unsafe actions if you later expose anything beyond loopback.
+# trusted_clients:
+#   - 127.0.0.1
+
+[file_manager]
+# These are common defaults; adjust to match your Klipper/Moonraker install.
+config_path: ~/printer_data/config
+log_path: ~/printer_data/logs
+gcode_path: ~/printer_data/gcodes
+
+# If your environment differs (e.g., different base directory), update accordingly.
