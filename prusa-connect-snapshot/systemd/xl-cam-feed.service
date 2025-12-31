@@ -1,0 +1,14 @@
+[Unit]
+Description=Prusa XL Camera Feed (rpicam-vid MJPEG TCP)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=prusa
+ExecStart=/usr/local/bin/xl_cam_raw_mjpeg.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
