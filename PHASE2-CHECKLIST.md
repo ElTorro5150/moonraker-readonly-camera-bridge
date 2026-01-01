@@ -35,6 +35,23 @@ This design:
   - MobileRaker
   - nginx
   - Prusa Connect snapshot uploader
+## Snapshot Stability Model (Important)
+
+`mjpeg_http_server.py` maintains **a single persistent TCP connection**
+to the MJPEG source (`127.0.0.1:9000`) and continuously caches the most
+recent complete JPEG frame in memory.
+
+- `/snapshot.jpg` returns the **cached frame** immediately
+- `/stream.mjpg` streams cached frames without opening new TCP connections
+- No endpoint ever opens a second connection to the camera feed
+
+This design:
+- Prevents camera / TCP contention
+- Eliminates snapshot flapping (200/503 behavior)
+- Allows simultaneous use by:
+  - MobileRaker
+  - nginx
+  - Prusa Connect snapshot uploader
 
 ## Network Architecture
 

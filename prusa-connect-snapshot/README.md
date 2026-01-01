@@ -41,6 +41,13 @@ HTTP 503 until the first frame is captured from the camera feed.
 
 Once the first frame is cached, `/snapshot.jpg` remains stable and
 returns HTTP 200 for all subsequent requests.
+## Startup behavior
+
+Immediately after service startup, `/snapshot.jpg` may briefly return
+HTTP 503 until the first frame is captured from the camera feed.
+
+Once the first frame is cached, `/snapshot.jpg` remains stable and
+returns HTTP 200 for all subsequent requests.
 Camera
 │
 ▼
@@ -87,3 +94,34 @@ From the **repository root**, run:
 ```bash
 sudo ./install.sh
 
+
+---
+
+## Known Failure Modes (Troubleshooting)
+
+### `/snapshot.jpg` returns HTTP 503
+Meaning: the HTTP server has not cached a frame yet, or the TCP MJPEG feed is down.
+
+Check:
+- `xl-cam-feed.service` is active and listening on `127.0.0.1:9000`
+- `xl-cam-http.service` is active
+- Snapshot endpoint:
+  - `curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8081/snapshot.jpg`
+
+### nginx `/snapshot.jpg` returns non-200
+Check:
+- `curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8081/snapshot.jpg`
+- nginx config test + reload:
+  - `sudo nginx -t && sudo systemctl reload nginx`
+
+### Prusa Connect uploads stop
+Check:
+- Service status:
+  - `systemctl status prusa-connect-snapshot.service`
+- Recent logs (avoid `-f` if your terminal crashes):
+  - `sudo journalctl -u prusa-connect-snapshot.service --no-pager -n 50 --since "10 minutes ago"`
+
+### MobileRaker stream issues
+Check:
+- `curl -I http://127.0.0.1:7126/stream.mjpg | head`
+- Ensure clients use the nginx port `7126` (not `7125` directly) for the deny-by-default allowlist.
