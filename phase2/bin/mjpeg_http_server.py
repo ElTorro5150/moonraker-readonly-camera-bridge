@@ -1,106 +1,135 @@
 #!/usr/bin/env python3
 import socket
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import time
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TCP_HOST = "127.0.0.1"
 TCP_PORT = 9000
+HTTP_HOST = "127.0.0.1"
 HTTP_PORT = 8081
 BOUNDARY = "frame"
 
-SNAPSHOT_TIMEOUT_SEC = 2.0  # fail fast if feed is stalled
+SOI = b"\xff\xd8"
+EOI = b"\xff\xd9"
+
+_latest_jpeg = None
+_latest_ts = 0.0
+_lock = threading.Lock()
+def _reader_loop():
+    global _latest_jpeg, _latest_ts
+    backoff = 0.2
+    while True:
+        try:
+            s = socket.create_connection((TCP_HOST, TCP_PORT), timeout=3.0)
+            s.settimeout(3.0)
+            buf = bytearray()
+            started = False
+
+            while True:
+                chunk = s.recv(65536)
+                if not chunk:
+                    raise ConnectionError("TCP feed closed")
+                buf.extend(chunk)
+
+                if not started:
+                    i = buf.find(SOI)
+                    if i >= 0:
+                        if i > 0:
+                            del buf[:i]
+                        started = True
+                    else:
+                        if len(buf) > 2_000_000:
+                            del buf[:-2]
+                        continue
+
+                j = buf.find(EOI)
+                if j >= 0:
+                    frame = bytes(buf[: j + 2])
+                    del buf[: j + 2]
+                    started = False
+                    with _lock:
+                        _latest_jpeg = frame
+                        _latest_ts = time.time()
+        except Exception:
+            try:
+                s.close()
+            except Exception:
+                pass
+            time.sleep(backoff)
+            backoff = min(backoff * 1.5, 2.0)
 
 class Handler(BaseHTTPRequestHandler):
+    server_version = "mjpeg_http_server/3.0"
+
+    def log_message(self, fmt, *args):
+        return
+
     def do_GET(self):
-	        # ---- NEW: single-frame endpoint ----
-        if self.path in ("/snapshot.jpg", "/snapshot"):
-            buffer = b""
-            sock = None
+        if self.path in ("/", "/stream.mjpg"):
+            return self.handle_stream()
+        if self.path == "/snapshot.jpg":
+            return self.handle_snapshot()
+        self.send_response(404)
+        self.end_headers()
 
-            try:
-                sock = socket.create_connection((TCP_HOST, TCP_PORT), timeout=SNAPSHOT_TIMEOUT_SEC)
-                sock.settimeout(SNAPSHOT_TIMEOUT_SEC)
+    def _get_latest(self):
+        with _lock:
+            return _latest_jpeg, _latest_ts
 
-                # Read until we find one complete JPEG (FFD8 ... FFD9)
-                while True:
-                    buffer += sock.recv(65536)
-
-                    start = buffer.find(b"\xff\xd8")
-                    end = buffer.find(b"\xff\xd9", start + 2) if start != -1 else -1
-
-                    if start != -1 and end != -1:
-                        jpg = buffer[start:end + 2]
-
-                        self.send_response(200)
-                        self.send_header("Cache-Control", "no-cache")
-                        self.send_header("Pragma", "no-cache")
-                        self.send_header("Content-Type", "image/jpeg")
-                        self.send_header("Content-Length", str(len(jpg)))
-                        self.end_headers()
-
-                        self.wfile.write(jpg)
-                        return
-
-            except ConnectionRefusedError:
-                # Feed not up / not accepting connections
-                self.send_response(503)
-                self.end_headers()
-                return
-            except Exception:
-                # Timeout or other read error
-                self.send_response(504)
-                self.end_headers()
-                return
-            finally:
-                if sock is not None:
-                    sock.close()
-
-
-        # ---- EXISTING: MJPEG stream endpoints (unchanged behavior) ----
-        if self.path not in ("/", "/stream.mjpg"):
-            self.send_response(404)
+    def handle_snapshot(self):
+        jpg, ts = self._get_latest()
+        if not jpg:
+            self.send_response(503)
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Pragma", "no-cache")
             self.end_headers()
             return
 
         self.send_response(200)
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Pragma", "no-cache")
-        self.send_header(
-            "Content-Type",
-            f"multipart/x-mixed-replace; boundary={BOUNDARY}"
-        )
+        self.send_header("Content-Type", "image/jpeg")
+        self.send_header("Content-Length", str(len(jpg)))
+        self.end_headers()
+        try:
+            self.wfile.write(jpg)
+        except BrokenPipeError:
+            pass
+    def handle_stream(self):
+        self.send_response(200)
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Content-Type", f"multipart/x-mixed-replace; boundary={BOUNDARY}")
         self.end_headers()
 
-        try:
-            sock = socket.create_connection((TCP_HOST, TCP_PORT), timeout=2.0)
-            sock.settimeout(2.0)
-        except Exception:
-            # Feed not available; fail cleanly instead of crashing the handler
-            self.send_response(503)
-            self.end_headers()
-            return
+        last_ts = 0.0
+        while True:
+            jpg, ts = self._get_latest()
+            if not jpg or ts == last_ts:
+                time.sleep(0.05)
+                continue
+            last_ts = ts
+            try:
+                header = (
+                    f"--{BOUNDARY}\r\n"
+                    "Content-Type: image/jpeg\r\n"
+                    f"Content-Length: {len(jpg)}\r\n"
+                    "\r\n"
+                ).encode("ascii")
+                self.wfile.write(header)
+                self.wfile.write(jpg)
+                self.wfile.write(b"\r\n")
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                return
 
-        buffer = b""
+def main():
+    t = threading.Thread(target=_reader_loop, daemon=True)
+    t.start()
+    httpd = ThreadingHTTPServer((HTTP_HOST, HTTP_PORT), Handler)
+    print(f"HTTP server listening on http://{HTTP_HOST}:{HTTP_PORT} (tcp source {TCP_HOST}:{TCP_PORT})")
+    httpd.serve_forever()
 
-        try:
-            while True:
-                buffer += sock.recv(65536)
-                while True:
-                    start = buffer.find(b"\xff\xd8")
-                    end = buffer.find(b"\xff\xd9", start + 2)
-                    if start == -1 or end == -1:
-                        break
-                    jpg = buffer[start:end+2]
-                    buffer = buffer[end+2:]
-
-                    self.wfile.write(
-                        f"--{BOUNDARY}\r\n"
-                        f"Content-Type: image/jpeg\r\n"
-                        f"Content-Length: {len(jpg)}\r\n\r\n".encode()
-                        + jpg + b"\r\n"
-                    )
-        except Exception:
-            pass
-        finally:
-            sock.close()
-
-HTTPServer(("0.0.0.0", HTTP_PORT), Handler).serve_forever()
+if __name__ == "__main__":
+    main()
