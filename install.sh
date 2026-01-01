@@ -1,28 +1,217 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-if [[ $EUID -ne 0 ]]; then
-  echo "ERROR: This installer must be run as root."
-  echo "Run: sudo ./install.sh"
-  exit 1
-fi
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SNAPSHOT_DIR="$SCRIPT_DIR/prusa-connect-snapshot"
+NGINX_SRC="${REPO_DIR}/nginx/moonraker-readonly.conf"
+MJPEG_SRC="${REPO_DIR}/scripts/mjpeg_http_server.py"
+SYSTEMD_DIR="${REPO_DIR}/systemd"
+PC_DIR="${REPO_DIR}/prusa-connect-snapshot"
 
-if [[ ! -d "$SNAPSHOT_DIR" ]]; then
-  echo "ERROR: prusa-connect-snapshot directory not found"
-  exit 1
-fi
+NGINX_AVAIL="/etc/nginx/sites-available/moonraker-readonly"
+NGINX_ENABLED="/etc/nginx/sites-enabled/moonraker-readonly"
 
-echo "==> Installing Prusa Connect Snapshot add-on"
-cd "$SNAPSHOT_DIR"
+MJPEG_DST="/usr/local/bin/mjpeg_http_server.py"
 
-if [[ ! -x install.sh ]]; then
-  echo "ERROR: prusa-connect-snapshot/install.sh not found or not executable"
-  exit 1
-fi
+PC_LIB_DIR="/usr/local/lib/prusa-connect-snapshot"
+PC_ETC_DIR="/etc/prusa-connect-snapshot"
+PC_ENV="${PC_ETC_DIR}/prusa-connect.env"
+PC_ENV_EXAMPLE_1="${PC_DIR}/config/prusa-connect.env.example"
+PC_ENV_EXAMPLE_2="${PC_DIR}/prusa-connect.env.example"
 
-./install.sh
+say() { echo -e "\n==> $*\n"; }
+die() { echo "ERROR: $*" >&2; exit 1; }
 
-echo "==> Installation complete"
+need_root() {
+  if [[ "${EUID}" -ne 0 ]]; then
+    die "Please run with sudo: sudo $0 ${1:-}"
+  fi
+}
+
+have_cmd() { command -v "$1" >/dev/null 2>&1; }
+
+install_file() {
+  # install_file MODE SRC DST
+  local mode="$1" src="$2" dst="$3"
+  [[ -f "$src" ]] || die "Missing file: $src"
+  install -m "$mode" -D "$src" "$dst"
+}
+
+install_dir_contents() {
+  # install_dir_contents SRC_DIR DST_DIR (copies contents, preserves structure)
+  local src="$1" dst="$2"
+  [[ -d "$src" ]] || die "Missing dir: $src"
+  mkdir -p "$dst"
+  rsync -a --delete "$src"/ "$dst"/
+}
+
+maybe_create_env_stub() {
+  mkdir -p "$PC_ETC_DIR"
+
+  if [[ -f "$PC_ENV" ]]; then
+    say "Env exists: $PC_ENV (leaving as-is)"
+    return 0
+  fi
+
+  local example=""
+  if [[ -f "$PC_ENV_EXAMPLE_1" ]]; then example="$PC_ENV_EXAMPLE_1"; fi
+  if [[ -z "$example" && -f "$PC_ENV_EXAMPLE_2" ]]; then example="$PC_ENV_EXAMPLE_2"; fi
+
+  if [[ -n "$example" ]]; then
+    say "No env found. Creating a NEW template (NOT enabled) at: ${PC_ENV}.NEW"
+    install -m 0600 -D "$example" "${PC_ENV}.NEW"
+    echo "NOTE: Copy ${PC_ENV}.NEW to ${PC_ENV} and fill in real values on the Pi (do NOT commit)." >&2
+  else
+    say "No env found and no example available. Skipping env template creation."
+  fi
+}
+
+nginx_install() {
+  say "Installing nginx site config"
+  [[ -f "$NGINX_SRC" ]] || die "Missing nginx config: $NGINX_SRC"
+
+  install -m 0644 -D "$NGINX_SRC" "$NGINX_AVAIL"
+
+  # enable via symlink (idempotent)
+  ln -sfn "$NGINX_AVAIL" "$NGINX_ENABLED"
+
+  if have_cmd nginx; then
+    nginx -t
+    systemctl reload nginx || systemctl restart nginx
+  else
+    say "nginx not found on PATH; skipping nginx reload"
+  fi
+}
+
+systemd_install() {
+  say "Installing systemd unit files"
+  [[ -d "$SYSTEMD_DIR" ]] || die "Missing systemd folder: $SYSTEMD_DIR"
+
+  install -m 0644 -D "${SYSTEMD_DIR}/xl-cam-http.service" "/etc/systemd/system/xl-cam-http.service" || true
+  install -m 0644 -D "${SYSTEMD_DIR}/prusa-connect-snapshot.service" "/etc/systemd/system/prusa-connect-snapshot.service" || true
+
+  systemctl daemon-reload
+}
+
+services_enable_start() {
+  say "Enabling + starting services (if present)"
+  if [[ -f /etc/systemd/system/xl-cam-http.service ]]; then
+    systemctl enable --now xl-cam-http.service
+  fi
+  if [[ -f /etc/systemd/system/prusa-connect-snapshot.service ]]; then
+    systemctl enable --now prusa-connect-snapshot.service
+  fi
+}
+
+services_stop_disable() {
+  say "Stopping + disabling services (if present)"
+  systemctl disable --now prusa-connect-snapshot.service 2>/dev/null || true
+  systemctl disable --now xl-cam-http.service 2>/dev/null || true
+}
+
+install_all() {
+  need_root install
+
+  have_cmd rsync || die "rsync is required (sudo apt-get install rsync)"
+
+  say "Installing mjpeg_http_server.py"
+  install_file 0755 "$MJPEG_SRC" "$MJPEG_DST"
+
+  say "Installing Prusa Connect snapshot component to $PC_LIB_DIR"
+  mkdir -p "$PC_LIB_DIR"
+
+  # Copy the entire component folder contents that are needed at runtime.
+  # We DO NOT copy any real env secrets.
+  # Prefer known runtime files/folders if present.
+  if [[ -d "${PC_DIR}/bin" ]]; then
+    install_dir_contents "${PC_DIR}/bin" "$PC_LIB_DIR"
+  fi
+  if [[ -d "${PC_DIR}/scripts" ]]; then
+    # keep scripts under lib as well if they’re used
+    mkdir -p "${PC_LIB_DIR}/scripts"
+    install_dir_contents "${PC_DIR}/scripts" "${PC_LIB_DIR}/scripts"
+  fi
+
+  # Ensure the loop script exists as a top-level file under lib (what your service uses)
+  if [[ -f "${PC_DIR}/pc_run_loop.sh" ]]; then
+    install_file 0755 "${PC_DIR}/pc_run_loop.sh" "${PC_LIB_DIR}/pc_run_loop.sh"
+  fi
+
+  maybe_create_env_stub
+
+  systemd_install
+  nginx_install
+  services_enable_start
+
+  say "Done."
+  status || true
+}
+
+uninstall_all() {
+  need_root uninstall
+
+  services_stop_disable
+
+  say "Removing installed files (leaves your real env alone)"
+  rm -f "/etc/systemd/system/prusa-connect-snapshot.service" "/etc/systemd/system/xl-cam-http.service"
+  systemctl daemon-reload
+
+  rm -f "$NGINX_ENABLED" "$NGINX_AVAIL"
+  if have_cmd nginx; then
+    nginx -t && systemctl reload nginx || true
+  fi
+
+  rm -f "$MJPEG_DST"
+  rm -rf "$PC_LIB_DIR"
+
+  say "NOTE: Keeping $PC_ENV and $PC_ETC_DIR intact."
+  say "Uninstall complete."
+}
+
+status() {
+  say "Repo: $REPO_DIR"
+  echo "nginx src: $NGINX_SRC"
+  echo "mjpeg src: $MJPEG_SRC"
+  echo "pc dir:    $PC_DIR"
+  echo
+
+  echo "Installed:"
+  ls -l "$MJPEG_DST" 2>/dev/null || true
+  ls -l "$NGINX_AVAIL" "$NGINX_ENABLED" 2>/dev/null || true
+  ls -l "/etc/systemd/system/xl-cam-http.service" "/etc/systemd/system/prusa-connect-snapshot.service" 2>/dev/null || true
+  echo
+
+  echo "Services:"
+  systemctl --no-pager --full status xl-cam-http.service 2>/dev/null || true
+  systemctl --no-pager --full status prusa-connect-snapshot.service 2>/dev/null || true
+}
+
+restart_services() {
+  need_root restart
+  say "Restarting services"
+  systemctl restart xl-cam-http.service 2>/dev/null || true
+  systemctl restart prusa-connect-snapshot.service 2>/dev/null || true
+  status || true
+}
+
+usage() {
+  cat <<USAGE
+Usage: sudo ./install.sh <command>
+
+Commands:
+  install     Install/update all components (idempotent)
+  uninstall   Remove installed files (keeps /etc/prusa-connect-snapshot/prusa-connect.env)
+  status      Show what's installed and service status
+  restart     Restart services
+
+USAGE
+}
+
+cmd="${1:-}"
+case "$cmd" in
+  install)   install_all ;;
+  uninstall) uninstall_all ;;
+  status)    status ;;
+  restart)   restart_services ;;
+  *) usage; exit 1 ;;
+esac
