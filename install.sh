@@ -31,14 +31,12 @@ need_root() {
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 install_file() {
-  # install_file MODE SRC DST
   local mode="$1" src="$2" dst="$3"
   [[ -f "$src" ]] || die "Missing file: $src"
   install -m "$mode" -D "$src" "$dst"
 }
 
 install_dir_contents() {
-  # install_dir_contents SRC_DIR DST_DIR (copies contents, preserves structure)
   local src="$1" dst="$2"
   [[ -d "$src" ]] || die "Missing dir: $src"
   mkdir -p "$dst"
@@ -47,7 +45,6 @@ install_dir_contents() {
 
 maybe_create_env_stub() {
   mkdir -p "$PC_ETC_DIR"
-
   if [[ -f "$PC_ENV" ]]; then
     say "Env exists: $PC_ENV (leaving as-is)"
     return 0
@@ -68,18 +65,14 @@ maybe_create_env_stub() {
 
 nginx_install() {
   say "Installing nginx site config"
-  [[ -f "$NGINX_SRC" ]] || die "Missing nginx config: $NGINX_SRC"
-
-  install -m 0644 -D "$NGINX_SRC" "$NGINX_AVAIL"
-
-  # enable via symlink (idempotent)
+  install_file 0644 "$NGINX_SRC" "$NGINX_AVAIL"
   ln -sfn "$NGINX_AVAIL" "$NGINX_ENABLED"
 
   if have_cmd nginx; then
     nginx -t
     systemctl reload nginx || systemctl restart nginx
   else
-    say "nginx not found on PATH; skipping nginx reload"
+    say "nginx not found; skipping reload"
   fi
 }
 
@@ -87,8 +80,12 @@ systemd_install() {
   say "Installing systemd unit files"
   [[ -d "$SYSTEMD_DIR" ]] || die "Missing systemd folder: $SYSTEMD_DIR"
 
-  install -m 0644 -D "${SYSTEMD_DIR}/xl-cam-http.service" "/etc/systemd/system/xl-cam-http.service" || true
-  install -m 0644 -D "${SYSTEMD_DIR}/prusa-connect-snapshot.service" "/etc/systemd/system/prusa-connect-snapshot.service" || true
+  if [[ -f "${SYSTEMD_DIR}/xl-cam-http.service" ]]; then
+    install_file 0644 "${SYSTEMD_DIR}/xl-cam-http.service" "/etc/systemd/system/xl-cam-http.service"
+  fi
+  if [[ -f "${SYSTEMD_DIR}/prusa-connect-snapshot.service" ]]; then
+    install_file 0644 "${SYSTEMD_DIR}/prusa-connect-snapshot.service" "/etc/systemd/system/prusa-connect-snapshot.service"
+  fi
 
   systemctl daemon-reload
 }
@@ -111,7 +108,6 @@ services_stop_disable() {
 
 install_all() {
   need_root install
-
   have_cmd rsync || die "rsync is required (sudo apt-get install rsync)"
 
   say "Installing mjpeg_http_server.py"
@@ -120,25 +116,15 @@ install_all() {
   say "Installing Prusa Connect snapshot component to $PC_LIB_DIR"
   mkdir -p "$PC_LIB_DIR"
 
-  # Copy the entire component folder contents that are needed at runtime.
-  # We DO NOT copy any real env secrets.
-  # Prefer known runtime files/folders if present.
-  if [[ -d "${PC_DIR}/bin" ]]; then
-    install_dir_contents "${PC_DIR}/bin" "$PC_LIB_DIR"
-  fi
-  if [[ -d "${PC_DIR}/scripts" ]]; then
-    # keep scripts under lib as well if they’re used
-    mkdir -p "${PC_LIB_DIR}/scripts"
-    install_dir_contents "${PC_DIR}/scripts" "${PC_LIB_DIR}/scripts"
-  fi
-
-  # Ensure the loop script exists as a top-level file under lib (what your service uses)
+  # Copy runtime bits if present (prefer explicit files)
   if [[ -f "${PC_DIR}/pc_run_loop.sh" ]]; then
     install_file 0755 "${PC_DIR}/pc_run_loop.sh" "${PC_LIB_DIR}/pc_run_loop.sh"
   fi
+  if [[ -f "${PC_DIR}/pc_capture_one_frame.py" ]]; then
+    install_file 0755 "${PC_DIR}/pc_capture_one_frame.py" "${PC_LIB_DIR}/pc_capture_one_frame.py"
+  fi
 
   maybe_create_env_stub
-
   systemd_install
   nginx_install
   services_enable_start
@@ -149,10 +135,9 @@ install_all() {
 
 uninstall_all() {
   need_root uninstall
-
   services_stop_disable
 
-  say "Removing installed files (leaves your real env alone)"
+  say "Removing installed files (keeps /etc/prusa-connect-snapshot/prusa-connect.env)"
   rm -f "/etc/systemd/system/prusa-connect-snapshot.service" "/etc/systemd/system/xl-cam-http.service"
   systemctl daemon-reload
 
@@ -164,7 +149,7 @@ uninstall_all() {
   rm -f "$MJPEG_DST"
   rm -rf "$PC_LIB_DIR"
 
-  say "NOTE: Keeping $PC_ENV and $PC_ETC_DIR intact."
+  say "Keeping $PC_ENV and $PC_ETC_DIR intact."
   say "Uninstall complete."
 }
 
@@ -203,7 +188,6 @@ Commands:
   uninstall   Remove installed files (keeps /etc/prusa-connect-snapshot/prusa-connect.env)
   status      Show what's installed and service status
   restart     Restart services
-
 USAGE
 }
 
