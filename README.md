@@ -199,3 +199,10 @@ sudo systemctl reload nginx
 - This repository is intended as a **reference implementation**, not a live configuration mirror
 
 ---
+
+## Nginx config note (v1.1.1)
+The read-only nginx site config intentionally enforces **GET/HEAD-only** behavior **per allowlisted `location`** (not via a global method gate), so the deny-by-default pattern remains intact while avoiding unintended side effects on endpoints like WebSocket upgrades.
+
+- `/websocket` must allow `GET` and include the standard Upgrade headers for clients like MobileRaker.
+- All non-allowlisted paths return `404` (deny-by-default).
+
