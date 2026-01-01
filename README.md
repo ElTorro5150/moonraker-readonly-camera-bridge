@@ -72,12 +72,11 @@ These instructions assume:
 
 ### 1️⃣ Clone the repository
 
-```bash
-cd ~
-git clone https://github.com/<YOUR_GITHUB_USERNAME>/moonraker-readonly-camera-bridge.git
-cd moonraker-readonly-camera-bridge
-```
 
+```bash
+git clone https://github.com/ElTorro5150/moonraker-readonly-camera-bridge.git
+cd moonraker-readonly-camera-bridge
+sudo ./install.sh
 ---
 
 ### 2️⃣ Install the nginx site configuration

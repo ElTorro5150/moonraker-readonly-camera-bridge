@@ -1,0 +1,28 @@
+[Unit]
+Description=Prusa Connect Snapshot Uploader (always-on)
+After=network-online.target xl-cam-http.service
+Wants=network-online.target
+Requires=xl-cam-http.service
+
+[Service]
+Type=simple
+User=prusa
+ExecStart=/usr/bin/bash /usr/local/lib/prusa-connect-snapshot/pc_run_loop.sh
+Environment=CONFIG_FILE=/etc/prusa-connect-snapshot/prusa-connect.env
+Restart=always
+RestartSec=2
+
+# Runtime dir that is writable even with ProtectSystem=strict
+RuntimeDirectory=prusa-connect
+RuntimeDirectoryMode=0755
+ReadWritePaths=/run/prusa-connect
+
+# Hardening (conservative)
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,6 @@
+/etc/prusa-connect-snapshot/prusa-connect.env
+prusa-connect.env
+*.env
+*.env.local
+prusa-connect-snapshot/config/prusa-connect.env
+-i '4d' .gitignore.env.example
