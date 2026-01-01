@@ -34,6 +34,21 @@ This solution uses **only officially supported Klipper functionality**.
 
 ---
 
+---
+
+## 📸 Phase 2: Prusa Connect Snapshots (Add-On)
+
+This repo includes an optional Phase 2 add-on that provides:
+
+- `/snapshot.jpg` via a local cached-frame MJPEG HTTP server
+- Stable snapshot proxying through nginx (`:7126/snapshot.jpg`)
+- A systemd uploader that sends snapshots to Prusa Connect on an interval
+
+See:
+- `PHASE2-CHECKLIST.md`
+- `prusa-connect-snapshot/README.md`
+
+Stable milestone tag: `phase2-stable`
 ## 🧠 Architecture Overview
 
 ### WebSocket Authentication Caveat
