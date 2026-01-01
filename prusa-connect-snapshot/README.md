@@ -34,6 +34,13 @@ Prusa Connect snapshots are the intended and supported use case.
 
 ## Architecture overview
 
+## Startup behavior
+
+Immediately after service startup, `/snapshot.jpg` may briefly return
+HTTP 503 until the first frame is captured from the camera feed.
+
+Once the first frame is cached, `/snapshot.jpg` remains stable and
+returns HTTP 200 for all subsequent requests.
 Camera
 │
 ▼
@@ -63,17 +70,16 @@ Prusa Connect Snapshot Uploader
 Prusa Connect requires **single JPEG uploads**, not MJPEG streams.
 
 Instead of parsing MJPEG or invoking ffmpeg:
-- the HTTP server extracts **exactly one frame**
-- returns a valid JPEG
-- closes the connection immediately
 
-This provides:
-- predictable behavior
-- minimal surface area
-- reliable uploads
+- A single background reader maintains a persistent TCP connection
+- The most recent complete JPEG frame is cached in memory
+- `/snapshot.jpg` returns the cached frame instantly
 
----
-
+This guarantees:
+- Stable behavior even when `/stream.mjpg` is active
+- No camera or TCP contention
+- Predictable, low-latency snapshot capture
+- Reliable uploads to Prusa Connect
 ## Installation (recommended: one command)
 
 From the **repository root**, run:
