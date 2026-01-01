@@ -4,3 +4,4 @@ prusa-connect.env
 *.env.local
 prusa-connect-snapshot/config/prusa-connect.env
 -i '4d' .gitignore.env.example
+.env.example
