@@ -9,6 +9,13 @@
 **MoonBridge** is a safe, read-only Moonraker + Klipper bridge designed for
 **camera-only Raspberry Pi hosts**.
 
+### ✅ Tested Platforms
+
+| Hardware              | OS                                      | Architecture | Status |
+|-----------------------|------------------------------------------|--------------|--------|
+| Raspberry Pi Zero 2 W | Raspberry Pi OS (Trixie) 64-bit Lite     | ARM64        | ✅ Tested |
+
+
 It enables **MobileRaker** and other Moonraker-compatible clients to connect
 to a Raspberry Pi **without exposing any printer control, motion, or mutation
 capability**.
