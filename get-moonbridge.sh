@@ -25,7 +25,6 @@ need_cmd git
 OWNER="ElTorro5150"
 REPO="moonraker-readonly-camera-bridge"
 BRANCH="main"
-
 REPO_URL="https://github.com/${OWNER}/${REPO}.git"
 
 BASE_DIR="${HOME}/repo"
