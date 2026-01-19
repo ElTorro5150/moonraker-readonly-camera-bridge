@@ -4,7 +4,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/common.sh"
 
 svc_exists() {
   local svc="$1"
-  systemctl status "$svc" >/dev/null 2>&1
+  systemctl --system status "$svc" >/dev/null 2>&1
 }
 
 http_code_get() {
@@ -30,8 +30,8 @@ show_status() {
   for svc in xl-cam-feed.service xl-cam-http.service prusa-connect-snapshot.service nginx.service; do
     if svc_exists "$svc"; then
       local active enabled
-      active="$(systemctl is-active "$svc" 2>/dev/null || true)"
-      enabled="$(systemctl is-enabled "$svc" 2>/dev/null || true)"
+      active="$(systemctl --system is-active "$svc" 2>/dev/null || true)"
+      enabled="$(systemctl --system is-enabled "$svc" 2>/dev/null || true)"
       log "$svc  active=$active  enabled=$enabled"
     else
       log "$svc  (not found)"
@@ -46,9 +46,10 @@ show_status() {
   echo
 
   log "== Files =="
-  ls -l /etc/nginx/sites-available/moonbridge 2>/dev/null || true
-  ls -l /etc/nginx/sites-enabled/moonbridge 2>/dev/null || true
-  ls -l /etc/moonbridge/prusa-connect.env 2>/dev/null || true
+    # Nginx site(s): show anything that looks like moonbridge or moonraker-readonly
+  ls -l /etc/nginx/sites-available 2>/dev/null | grep -E "moonbridge|moonraker-readonly" || true
+  ls -l /etc/nginx/sites-enabled   2>/dev/null | grep -E "moonbridge|moonraker-readonly" || true
+  ls -l /etc/prusa-connect-snapshot/prusa-connect.env 2>/dev/null || true
 
   # Also show whether your nginx site exists outside MoonBridge naming
   ls -l /etc/nginx/sites-available 2>/dev/null | sed -n '1,200p' || true
