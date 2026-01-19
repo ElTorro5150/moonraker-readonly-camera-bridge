@@ -1,11 +1,19 @@
-# MoonBridge is a moonraker-readonly-camera-bridge...thing?
+# MoonBridge
+*(moonraker-readonly-camera-bridge)*
 
-**Safe, read-only Moonraker + Klipper bridge for camera-only Raspberry Pi hosts**
+![Install](https://img.shields.io/badge/install-one--command-success)
+![Status](https://img.shields.io/badge/status-stable-brightgreen)
+![Security](https://img.shields.io/badge/mode-read--only-blue)
+![Platform](https://img.shields.io/badge/platform-Debian%2013%20%7C%20RPi-orange)
 
-This project enables **MobileRaker** and other Moonraker-compatible clients to connect
-to a Raspberry Pi **without exposing any printer control or motion capability**.
+**MoonBridge** is a safe, read-only Moonraker + Klipper bridge designed for
+**camera-only Raspberry Pi hosts**.
 
-Id is designed for use cases such as:
+It enables **MobileRaker** and other Moonraker-compatible clients to connect
+to a Raspberry Pi **without exposing any printer control, motion, or mutation
+capability**.
+
+Typical use cases include:
 - Dedicated camera-only Raspberry Pi systems
 - Prusa XL external camera hosts
 - Monitoring-only deployments
