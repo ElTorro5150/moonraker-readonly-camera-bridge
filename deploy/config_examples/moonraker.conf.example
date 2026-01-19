@@ -1,0 +1,18 @@
+[server]
+host: 127.0.0.1
+port: 7125
+# Point Moonraker at Klipper's unix socket:
+klippy_uds_address: /home/prusa/printer_data/comms/klippy.sock
+
+[authorization]
+trusted_clients:
+  127.0.0.1
+  192.168.86.0/24
+
+cors_domains:
+  http://192.168.86.21
+  http://192.168.86.21:7126
+
+[octoprint_compat]
+
+[history]

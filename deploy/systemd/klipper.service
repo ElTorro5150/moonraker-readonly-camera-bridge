@@ -1,0 +1,15 @@
+[Unit]
+Description=Klipper (dummy)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=prusa
+WorkingDirectory=/home/prusa/klipper_stack/klipper
+ExecStart=/home/prusa/klipper_stack/klippy-venv/bin/python /home/prusa/klipper_stack/klipper/klippy/klippy.py /home/prusa/printer_data/config/printer.cfg -l /home/prusa/printer_data/logs/klippy.log
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

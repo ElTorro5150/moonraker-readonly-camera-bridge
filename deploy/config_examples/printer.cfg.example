@@ -1,0 +1,17 @@
+# Minimal fake printer for MobileRaker compatibility
+[printer]
+kinematics: none
+max_velocity: 1
+max_accel: 1
+
+[mcu]
+serial: /tmp/klipper_host_mcu
+
+[virtual_sdcard]
+path: ~/printer_data/gcodes
+
+[display_status]
+
+[pause_resume]
+
+[print_stats]
