@@ -7,6 +7,13 @@
 ![Platform](https://img.shields.io/badge/platform-Debian%2013%20%7C%20RPi-orange)
 ![Release](https://img.shields.io/github/v/tag/ElTorro5150/moonraker-readonly-camera-bridge)
 
+### 📌 Current Release
+
+**v1.2.3**
+- Introduces menu-driven installer
+- Adds one-command bootstrap installer
+- Preserves strict read-only security model
+
 
 **MoonBridge** is a safe, read-only Moonraker + Klipper bridge designed for
 **camera-only Raspberry Pi hosts**.
