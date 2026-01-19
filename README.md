@@ -1,4 +1,4 @@
-# moonraker-readonly-camera-bridge
+# MoonBridge is a moonraker-readonly-camera-bridge...thing?
 
 **Safe, read-only Moonraker + Klipper bridge for camera-only Raspberry Pi hosts**
 
