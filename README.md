@@ -89,3 +89,9 @@ Use this only if you understand the implications.
 
 
 EOF
+
+## What's New (v1.2.4)
+
+- Installer menu now includes **Set Snapshot Upload Interval** for Prusa Connect snapshots (updates `INTERVAL_SECONDS` in `/etc/prusa-connect-snapshot/prusa-connect.env` and restarts the snapshot service).
+- Interval **minimum is 5 seconds** (power-user option). When set under **15 seconds**, the installer shows a warning that it may increase CPU/bandwidth and could be rate-limited; restarting the service may take a few seconds on Raspberry Pi.
+
