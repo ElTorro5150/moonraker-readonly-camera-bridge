@@ -71,6 +71,9 @@ EOT"
   else
     warn "Env file is not filled yet. Service will NOT be started."
     warn "Edit: sudo nano $ENV_PATH"
+    # MB_PATCH_PC_TOKEN_FINGERPRINT_SNAPSHOTS: prompt for PC_TOKEN then write PC_FINGERPRINT before service runs
+    _mb_pc_configure_token_and_fingerprint || return 0
+
     warn "Then: sudo systemctl enable --now prusa-connect-snapshot.service"
   fi
 }
