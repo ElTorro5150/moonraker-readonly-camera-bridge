@@ -5,7 +5,7 @@ log()  { echo "[MoonBridge] $*"; }
 warn() { echo "[MoonBridge][WARN] $*" >&2; }
 die()  { echo "[MoonBridge][ERROR] $*" >&2; exit 1; }
 
-need_cmd() { command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"; }
+need_cmd() { if command -v "$1" >/dev/null 2>&1; then return 0; fi; if [ "$1" = "nginx" ] && command -v _mb_ensure_nginx >/dev/null 2>&1; then _mb_ensure_nginx || true; return 0; fi; die "Missing required command: $1"; }  # MB_PATCH_NGINX_NEED_CMD
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 timestamp() { date +"%Y%m%d-%H%M%S"; }
